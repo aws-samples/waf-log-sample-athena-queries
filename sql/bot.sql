@@ -1,3 +1,4 @@
+-- This sql is categorizing all requests based on the labels attached such as relating to bots, amazon managed rules, types of requests
  SELECT
         date,
         --baseline rule groups
@@ -113,8 +114,16 @@
                         x -> LOWER(x.name) = 'host'
                     )[1].value
                 )) AS unique_header_host,
-        count(1) AS total_requests
-    FROM  waf_logs, UNNEST(labels) t(label_items)
+        count(DISTINCT(httprequest.requestid)) AS total_requests
+    FROM  waf_logs,
+
+    UNNEST( CASE WHEN cardinality(labels) >= 1
+               THEN labels
+               ELSE array[ cast( row('NOLABEL') as row(name varchar)) ]
+              END
+       ) AS t(label_items)
+
+
     WHERE
-date >= date_format(current_date - interval '3' day, '%Y/%m/%d')  
+date >= date_format(current_date - interval '7' day, '%Y/%m/%d')  
     GROUP BY date
