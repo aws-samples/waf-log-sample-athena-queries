@@ -61,6 +61,15 @@ If you have enabled Challenge/CAPTCHA/Bot Control , it helps to understand if th
 #### Example 7: Session tracking – Lifecycle of a client request (Client session activity by token)
 With the query in Example 6 , you  have a list of tokens utilized by different IPs.  Once a WAF token is issued, use [this query](sql/alltraffic_bywaftoken.sql) to find out which all requests were made with that token. Before running the query replace the text "INSERT_THE_TOKEN_ID_HERE" with the WAF token into the query. 
 
+#### Example 8: Calculating thresholds for Rate Based Rules
+[This query](sql/rbrheaderthreshold.sql)  gives the thresholds for your Rate Based Rules such as how many requests were received with a specific header in a 5 minute window over the past 7 days . You get min, max, avg, p95, p99 values of the requests  coming in with unique values of the header. If you dont need the unique values of the header, then you can  comment out all references to headervalue. This allows you to calculate the thresholds for traffic which has the specific header.
+
+[This query](sql/rbrclientipurithreshold.sql)  gives the thresholds for your Rate Based Rules such as how many requests were received with from a specific IP / for a URI  in a 5 minute window over the past 7 days . You get min, max, avg, p95, p99 values of the requests  coming in with unique values of the IP/ URI combination.  This allows to calculate what thresholds you want to setup for your rate based rules based on IP/URI combination
+
+#### Example 9: Calculating traffic blocked by Rate Based Rules
+[This query](sql/trafficByRBRHeader.sql)  gives the details about the  traffic being blocked by your Rate Based Rules using a  specific header as an AGGREGATION KEY. It calculates the traffic  blocked  in  5 minute intervals during the specified time slot. You can add/change additional  AGGREGATION KEYS  per your WAF rules to validate that rules are working as per your requirements. 
+
+[This query](sql/trafficBYRBRURI.sql)  gives the details about the  traffic being blocked by your Rate Based Rules using a URI as an AGGREGATION KEY. It calculates the traffic  blocked  in  5 minute intervals during the specified time slot . You can add/change additional  AGGREGATION KEYS  per your WAF rules to validate that rules are working as per your requirements. 
 
 ### Tips to make Athena queries faster
 To improve query performance refer to [Athena performance tuning post](https://docs.aws.amazon.com/athena/latest/ug/performance-tuning.html). It is important to reduce the data being queried. Here are some additional tips to help improve your Athena queries. 
