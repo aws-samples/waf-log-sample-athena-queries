@@ -1,6 +1,11 @@
 -- This sql is categorizing all requests based on the labels attached such as relating to bots, amazon managed rules, types of requests
  SELECT
         httprequest.clientip,
+              count(DISTINCT(httprequest.requestid)) AS total_requests,
+        count(DISTINCT(	CASE 			WHEN action = 'CHALLENGE' THEN httprequest.requestid  			END		)) as challenge_requests,
+        count(DISTINCT(	CASE 			WHEN action = 'ALLOW' THEN httprequest.requestid  		END		)) as allow_requests,
+        count(DISTINCT(	CASE 			WHEN action = 'BLOCK' THEN httprequest.requestid 			END		)) as block_requests,
+        count(DISTINCT(	CASE 			WHEN action = 'CAPTCHA' THEN httprequest.requestid  		END		)) as captcha_requests,
         --baseline rule groups
         SUM(CASE WHEN label_items.name LIKE '%:core-rule-set:%' THEN 1 ELSE 0 END) is_core_rule_set, -- commonly occurring vulnerabilities described in OWASP publications such AS OWASP Top 10
         SUM(CASE WHEN label_items.name LIKE '%:admin-protection:%' THEN 1 ELSE 0 END) is_admin_protection,--  risk of a malicious actor gaining administrative access to your application
@@ -39,10 +44,6 @@
 
 
         -- OTHER RULES
-        SUM(CASE WHEN action = 'CHALLENGE' THEN 1 END) AS challenge_requests,
-        SUM(CASE WHEN action = 'BLOCK' THEN 1 END) AS BLOCK_requests,
-        SUM(CASE WHEN action = 'ALLOW' THEN 1 END) AS ALLOW_requests,
-        SUM(CASE WHEN action = 'CAPTCHA' THEN 1 END) AS CAPTCHA_requests,
         SUM(CASE WHEN label_items.name = 'awswaf:managed:token:accepted' THEN 1 ELSE 0 END) token_valid,
         SUM(CASE WHEN label_items.name = 'awswaf:managed:token:rejected' THEN 1 ELSE 0 END) token_rejected,
         SUM(CASE WHEN label_items.name = 'awswaf:managed:token:absent' THEN 1 ELSE 0 END) tokeN_absent,
@@ -74,48 +75,17 @@
         SUM(CASE WHEN label_items.name LIKE '%:bot-control:bot:category:http_library%' THEN 1 ELSE 0 END) http_library,
 
         
-        -- Other stats distinct Count
-        SUM(CASE WHEN            
-                try(
-                    filter(
-                        httprequest.headers,
-                        x -> LOWER(x.name) = 'x-forwarded-for'
-                    )[1].value
-                ) is NULL then 0 ELSE 1 END ) AS header_x_forwarded_for_provided,
-        COUNT(DISTINCT              
-        try(
-                    filter(
-                        httprequest.headers,
-                        x -> LOWER(x.name) = 'x-forwarded-for'
-                    )[1].value
-                )) AS unique_header_x_forwarded_for,
-        COUNT(DISTINCT              try(
-                    filter(
-                        httprequest.headers,
-                        x -> LOWER(x.name) = 'accept-encoding'
-                    )[1].value
-                )) AS unique_header_accept_encoding,
-        COUNT(DISTINCT              try(
-                    filter(
-                        httprequest.headers,
-                        x -> LOWER(x.name) = 'accept-language'
-                    )[1].value
-                )) AS unique_header_accept_language,
+           -- Other stats distinct Count
+        SUM (CASE WHEN   try( filter( httprequest.headers, x -> LOWER(x.name) = 'x-forwarded-for' )[1].value ) is NULL then 0 ELSE 1 END ) AS header_x_forwarded_for_provided,
+        COUNT (DISTINCT  try( filter( httprequest.headers, x -> LOWER(x.name) = 'x-forwarded-for' )[1].value )) AS unique_header_x_forwarded_for,
+        COUNT (DISTINCT  try( filter( httprequest.headers, x -> LOWER(x.name) = 'accept-encoding' )[1].value )) AS unique_header_accept_encoding,
+        COUNT (DISTINCT  try( filter( httprequest.headers, x -> LOWER(x.name) = 'accept-language' )[1].value )) AS unique_header_accept_language,
         COUNT(DISTINCT httprequest.clientip) AS unique_client_ip,
-        COUNT(DISTINCT  try(
-                    filter(
-                        httprequest.headers,
-                        x -> LOWER(x.name) = 'user-agent'
-                    )[1].value)) AS unique_header_user_agent,
+        COUNT(DISTINCT try( filter( httprequest.headers, x -> LOWER(x.name) = 'user-agent' )[1].value)) AS unique_header_user_agent,
         COUNT(DISTINCT httprequest.uri) AS unique_uri,
-        COUNT(DISTINCT try(
-                    filter(
-                        httprequest.headers,
-                        x -> LOWER(x.name) = 'host'
-                    )[1].value
-                )) AS unique_header_host,
-        count(DISTINCT(httprequest.requestid)) AS total_requests
-    FROM  waf_logs,
+        COUNT(DISTINCT try( filter( httprequest.headers, x -> LOWER(x.name) = 'host' )[1].value )) AS unique_header_host
+
+    FROM  waf_logs cross join 
 
     UNNEST( CASE WHEN cardinality(labels) >= 1
                THEN labels
