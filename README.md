@@ -71,6 +71,10 @@ With the query in Example 6 , you  have a list of tokens utilized by different I
 
 [This query](sql/traffic_byrbruri.sql)  gives the details about the  traffic being blocked by your Rate Based Rules using a URI as an AGGREGATION KEY. It calculates the traffic  blocked  in  5 minute intervals during the specified time slot . You can add/change additional  AGGREGATION KEYS  per your WAF rules to validate that rules are working as per your requirements. 
 
+#### Example 10: Understanding IPs/clients with Challenged requests for a given set of days
+
+[This query](sql/challenges_and_tokens_byip.sql)  gives the details about the IPs/clients that got Challenged by WAF due to [WAF token](https://docs.aws.amazon.com/waf/latest/developerguide/waf-tokens.html) not being accepted. It can also uncover issues with [client application integrations](https://docs.aws.amazon.com/waf/latest/developerguide/waf-application-integration.html) that leverages AWS WAF tokens. You can further extend this analysis by using [this query](sql/persistent_challenges_byip.sql) to detect the number of IPs/clients that are getting persistently Challenged given a defined threshold (e.g. 5 challenged requests).
+
 ### Tips to make Athena queries faster
 To improve query performance refer to [Athena performance tuning post](https://docs.aws.amazon.com/athena/latest/ug/performance-tuning.html). It is important to reduce the data being queried. Here are some additional tips to help improve your Athena queries. 
 

@@ -10,6 +10,12 @@ with challenges_and_tokens as (
         ) as challenged_requests,
         SUM(
             CASE
+                WHEN ARRAY_JOIN(transform(labels, l -> l.name), ', ') like 'awswaf:managed:token:rejected%' THEN 1
+                ELSE 0
+            END
+        ) token_rejected,
+        SUM(
+            CASE
                 WHEN ARRAY_JOIN(transform(labels, l -> l.name), ', ') like 'awswaf:managed:token:absent' THEN 1
                 ELSE 0
             END
@@ -19,13 +25,13 @@ with challenges_and_tokens as (
                 WHEN ARRAY_JOIN(transform(labels, l -> l.name), ', ') like '%:bot-control:TGT_TokenAbsent%' THEN 1
                 ELSE 0
             END
-        ) targeted_token_absent,
+        ) bot_control_token_absent,
         SUM(
             CASE
                 WHEN ARRAY_JOIN(transform(labels, l -> l.name), ', ') like '%:targeted:aggregate:volumetric:ip:token_absent%' THEN 1
                 ELSE 0
             END
-        ) targeted_volumetric_token_absent
+        ) bot_control_volumetric_token_absent
     FROM
         "waf_logs",
         UNNEST(
@@ -51,33 +57,41 @@ select
     ) as ips_challenged,
     COUNT(
         distinct case
+            when unique_tokens > 0 then clientip
+        end
+    ) as ips_with_tokens,
+    COUNT(
+        distinct case
+            when (token_rejected > 0)
+            and (challenged_requests > 0) then clientip
+        end
+    ) as ips_challenged_with_token_rejected,
+    COUNT(
+        distinct case
             when (token_absent > 0)
             and (challenged_requests > 0) then clientip
         end
     ) as ips_challenged_with_token_absent,
     COUNT(
         distinct case
-            when (targeted_token_absent > 0)
+            when (bot_control_token_absent > 0)
             and (challenged_requests > 0) then clientip
         end
-    ) as ips_challenged_with_targeted_token_absent,
+    ) as ips_challenged_with_bot_control_token_absent,
     COUNT(
         distinct case
-            when (targeted_volumetric_token_absent > 0)
+            when (bot_control_volumetric_token_absent > 0)
             and (challenged_requests > 0) then clientip
         end
-    ) as ips_challenged_with_targeted_volumetric_token_absent,
-    COUNT(
-        distinct case
-            when unique_tokens > 0 then clientip
-        end
-    ) as ips_with_tokens,
+    ) as ips_challenged_with_bot_control_volumetric_token_absent,
     COUNT(
         distinct case
             when (unique_tokens = 0)
             and (
-                targeted_token_absent > 0
-                OR targeted_volumetric_token_absent > 0
+                token_rejected > 0
+                OR token_absent > 0
+                OR bot_control_token_absent > 0
+                OR bot_control_volumetric_token_absent > 0
             ) then clientip
         end
     ) as ips_with_no_tokens_ever
